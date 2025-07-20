@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Car Art Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+  <!-- Google AdSense Script -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9890262806247580"
+    crossorigin="anonymous"></script>
+
+  <!-- Cookie Consent Banner -->
+  <script src="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
+  <script>
+    window.addEventListener("load", function () {
+      window.cookieconsent.initialise({
+        palette: {
+          popup: { background: "#000" },
+          button: { background: "#f1d600", text: "#000" }
+        },
+        theme: "classic",
+        content: {
+          message: "This website uses cookies to ensure you get the best experience.",
+          dismiss: "Got it!",
+          link: "Privacy Policy",
+          href: "#privacy-policy"
+        }
+      });
+    });
+  </script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBMFjlOZqKwGGcYJa1bPrdI8ZhFs1rBjVk",
+      authDomain: "car-art-gallery.firebaseapp.com",
+      projectId: "car-art-gallery",
+      storageBucket: "car-art-gallery.appspot.com",
+      messagingSenderId: "528907537519",
+      appId: "1:528907537519:web:b1dbdbcbbce7c6377a919a",
+      measurementId: "G-W1F72D7ESC"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+    const auth = getAuth(app);
+
+    const form = document.getElementById('upload-form');
+    const loginForm = document.getElementById('login-form');
+    const gallery = document.getElementById('gallery');
+    const adTop = document.getElementById('ad-top');
+    const adBottom = document.getElementById('ad-bottom');
+    const uploadSection = document.getElementById('upload');
+
+    function toggleUpload(show) {
+      uploadSection.style.display = show ? 'block' : 'none';
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) toggleUpload(true);
+      else toggleUpload(false);
+    });
+
+    loginForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = loginForm.email.value;
+      const password = loginForm.password.value;
+      signInWithEmailAndPassword(auth, email, password)
+        .then(() => alert("Login successful"))
+        .catch(() => alert("Login failed"));
+    });
+
+    async function loadGallery() {
+      const querySnapshot = await getDocs(collection(db, "artworks"));
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <img src="${data.imageUrl}" alt="${data.title}">
+          <div class="info">
+            <p>${data.title}</p>
+            <p>₹${data.price}</p>
+            <script src="https://checkout.razorpay.com/v1/payment-button.js"
+              data-payment_button_id="${data.razorpayId}" async></script>
+          </div>
+        `;
+        gallery.appendChild(card);
+      });
+    }
+
+    async function loadAds() {
+      const querySnapshot = await getDocs(collection(db, "ads"));
+      const ads = querySnapshot.docs.map(doc => doc.data().content);
+      if (ads.length > 0) adTop.innerHTML = ads[0];
+      if (ads.length > 1) adBottom.innerHTML = ads[1];
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = form.artfile.files[0];
+      const title = form.title.value;
+      const price = form.price.value;
+      const razorpayId = form.razorpayid.value;
+      if (!file || !title || !price || !razorpayId) return alert("Fill all fields.");
+
+      const storageRef = ref(storage, `artworks/${file.name}`);
+      await uploadBytes(storageRef, file);
+      const imageUrl = await getDownloadURL(storageRef);
+
+      await addDoc(collection(db, "artworks"), {
+        title,
+        price,
+        imageUrl,
+        razorpayId
+      });
+
+      alert("Artwork uploaded!");
+      location.reload();
+    });
+
+    loadGallery();
+    loadAds();
+  </script>
+  <style>
+    /* existing styles unchanged */
+  </style>
+</head>
+
+<body>
+  <header>
+    AI CAR ART GALLERY
+  </header>
+
+  <nav>
+    <a href="#home">Home</a>
+    <a href="#gallery">Gallery</a>
+    <a href="#upload">Upload</a>
+    <a href="#footer">Contact</a>
+  </nav>
+
+  <section class="ads-space" id="ad-top">
+    <!-- Google AdSense Auto Ad -->
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-9890262806247580"
+         data-ad-slot="1234567890"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </section>
+
+  <section id="gallery" class="gallery">
+    <!-- Artworks will be dynamically injected here -->
+  </section>
+
+  <section class="ads-space" id="ad-bottom">
+    <!-- Google AdSense Auto Ad -->
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-9890262806247580"
+         data-ad-slot="0987654321"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </section>
+
+  <section class="login-form">
+    <h2>Admin Login</h2>
+    <form id="login-form">
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Login</button>
+    </form>
+  </section>
+
+  <section id="upload" class="upload-form" style="display:none">
+    <h2>Admin Upload Panel</h2>
+    <form id="upload-form">
+      <input type="file" name="artfile" required>
+      <input type="text" name="title" placeholder="Artwork Title" required>
+      <input type="text" name="price" placeholder="Price (INR)" required>
+      <input type="text" name="razorpayid" placeholder="Razorpay Button ID" required>
+      <button type="submit">Upload Artwork</button>
+    </form>
+    <p style="color:#888; font-size:0.9rem">(This form is now live and connected to Firebase with restricted access.)</p>
+  </section>
+
+  <footer id="footer">
+    <h3>About</h3>
+    <p>This site showcases high-quality AI-generated car artwork. All designs are original and available for purchase globally using Razorpay.</p>
+    <br>
+    <h3>Contact</h3>
+    <p>Email: yourname@example.com</p>
+    <p>Instagram: @yourcarartpage</p>
+    <br>
+    <h3 id="privacy-policy">Privacy Policy</h3>
+    <p>We respect your privacy and are committed to protecting your personal information. When you visit our site, we may collect information about your device and interaction using cookies for analytics and personalization. Your data is not sold or shared with third parties, except when necessary to complete transactions or provide services (e.g., Razorpay payments, Firebase hosting, and Google AdSense).</p>
+    <p>By continuing to use our site, you agree to our use of cookies. You may disable cookies via your browser settings, but the site experience may be affected. For inquiries, email: yourname@example.com</p>
+    <br>
+    <p><a href="#privacy-policy" style="color:#f1d600">Privacy Policy</a></p>
+    <p>&copy; 2025 AI Car Art Gallery. All rights reserved.</p>
+  </footer>
+</body>
+
+</html>
